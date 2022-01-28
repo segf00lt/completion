@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 
 # Dictionary based completion is just search,
-# meaning all we need is a list of words and a
-# search algorithm.
-
-from sys import argv
-from english_words import english_words_set
+# so all we need is a list of words and
+# binary search.
 
 # Returns a sorted list of elements of w
 # that begin with s
-def complete(s, w) -> list:
+def complete(s, d) -> list:
     p = []
+    w = [t for t in d]
 
     end = len(w) - 1
     begin = 0
@@ -32,12 +30,3 @@ def complete(s, w) -> list:
     p.sort(key=lambda s: len(s))
 
     return p
-
-w = list(english_words_set)
-w.sort()
-
-if __name__ == '__main__':
-    if len(argv) == 1:
-        exit(1)
-    for s in complete(argv[1], w):
-        print(s)
