@@ -82,10 +82,11 @@ class Model:
 
         else:
             index = self.lexicon[word]
-            transitions = self.weights[index]
-            predict = [list(self.lexicon)[i] for i in np.argpartition(transitions, -5)[-5:]]
-            for p in predict:
-                print(p)
+            t = self.weights[index]
+            for i in np.argsort(t)[::-1]:
+                if t[i] == 0:
+                    continue
+                print(list(self.lexicon)[i])
             return True
 
 
@@ -97,4 +98,11 @@ if __name__ == '__main__':
     bob = Model()
     bob.Train(sys.argv[1])
     while True:
-        bob.Run(input('> '))
+        try:
+            bob.Run(input('> '))
+        except KeyboardInterrupt:
+            print('\b\b  ')
+            exit(1)
+        except EOFError:
+            print()
+            exit(1)
