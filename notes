@@ -1,0 +1,11 @@
+Possibly allow saving and loading markov chain models with these
+functions:
+
+def Save(self, file):
+    np.savez_compressed(file, weights=self.weights, lexicon=self.lexicon)
+
+def Load(self, file):
+    loaded = np.load(file)
+    self.lexicon = loaded['lexicon']
+    #self.raw = loaded['raw']
+    self.weights = loaded['weights']
