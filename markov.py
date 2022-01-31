@@ -5,7 +5,7 @@ import sys
 import string
 from english_words import english_words_set
 
-exclude = "!\"#$%\&()*+,-./:;<=>?@[\\]^_`{|}~" + string.digits
+exclude = "!\"#$%\&()*+,-./:;<=>?@[\\]^_`{|}~“”" + string.digits
 
 
 class Model:
@@ -14,16 +14,14 @@ class Model:
         self.weights = np.empty(0)
 
     def __Lex(self, data):
-        words = {}
-        
+        i = 0
         for line in data:
             line = line.translate(str.maketrans('', '', exclude)).rstrip().split()
             for w in line:
-                if words.get(w) == None:
-                    words[w] = None
+                if self.lexicon.get(w) == None:
+                    self.lexicon[w] = i
+                    i += 1
 
-        words = sorted(words)
-        self.lexicon = { words[i]: i for i in range(len(words)) }
         data.seek(0)
         
         return True
@@ -41,13 +39,13 @@ class Model:
         
         lex_len = len(self.lexicon)
 
-        raw = np.zeros((lex_len, lex_len), dtype=float)
+        self.weights = np.zeros((lex_len, lex_len))
 
         # load raw data
         for line in data:
             line = line.translate(str.maketrans('', '', exclude)).rstrip().split()
     
-            for i in range(len(line) - 1):
+            for i,_ in enumerate(line[:-1]):
                 s = line[i]
                 t = line[i + 1]
                 try:
@@ -55,26 +53,25 @@ class Model:
                     col = self.lexicon[t]
                 except KeyError:
                     continue
-                raw[row][col] += 1
+                self.weights[row][col] += 1
 
         # adjust probabilities
-        tmp = []
-        for row in raw:
-            rsum = row.sum()
-            tmp.append([rsum] if rsum == 0 else [1 / rsum])
-        scale = np.array(tmp, dtype=float)
-        self.weights = raw * scale
+        rsum = self.weights.sum(axis=1).reshape((-1, 1)) # sum each row in raw
+        scale = np.vectorize(lambda i : i if i == 0 else 1 / i)
+        self.weights *= scale(rsum)
 
         data.close()
         return True
 
-    def Run(self, data : str) -> bool:
+    def Run(self, s : str) -> bool:
         if len(self.weights) == 0:
             print("error: train model before running", file=sys.stderr)
             return False
 
-        # last word in input string
-        word = data.translate(str.maketrans('', '', exclude)).strip().split()[-1]
+        s = s.translate(str.maketrans('', '', exclude)).strip().split()
+        word = s[-1] # last word in input s
+
+        # TODO: add partial word completion
 
         if word not in self.lexicon:
             print("No suggestions :(", file=sys.stderr)
@@ -86,7 +83,7 @@ class Model:
             for i in np.argsort(t)[::-1]:
                 if t[i] == 0:
                     continue
-                print(list(self.lexicon)[i])
+                print(f"{list(self.lexicon)[i]} {t[i]}")
             return True
 
 
