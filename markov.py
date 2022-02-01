@@ -13,7 +13,7 @@ class Model:
         self.lexicon = {}
         self.weights = np.empty(0)
 
-    def __Lex(self, data):
+    def __lex__(self, data):
         i = 0
         for line in data:
             line = line.translate(str.maketrans('', '', exclude)).rstrip().split()
@@ -35,11 +35,11 @@ class Model:
             return False
 
         # generate lexicon from file
-        self.__Lex(data)
+        self.__lex__(data)
         
-        lex_len = len(self.lexicon)
+        n = len(self.lexicon)
 
-        self.weights = np.zeros((lex_len, lex_len))
+        self.weights = np.zeros((n, n))
 
         # load raw data
         for line in data:
@@ -63,28 +63,51 @@ class Model:
         data.close()
         return True
 
+    def __suggest__(self, w : str):
+        index = self.lexicon[w]
+        t = self.weights[index]
+        nz = np.nonzero(t)[0]
+        u = nz[np.argsort(t[nz])[::-1]]
+        keys = list(self.lexicon.keys())
+        suggest = [keys[i] for i in u]
+        return suggest
+
+    # partial completion based on suggested words
+    def __partial__(self, w : str, p : str):
+        suggest = self.__suggest__(w)
+        partial = list(filter(lambda s: s.startswith(p), suggest))
+        return partial
+
     def Run(self, s : str) -> bool:
-        if len(self.weights) == 0:
+        if self.weights.size == 0:
             print("error: train model before running", file=sys.stderr)
             return False
 
-        s = s.translate(str.maketrans('', '', exclude)).strip().split()
-        word = s[-1] # last word in input s
+        if not s:
+            return False
 
-        # TODO: add partial word completion
+        s = s.translate(str.maketrans('', '', exclude)).strip().split()
+        word = s[-1]
 
         if word not in self.lexicon:
+            if len(s) == 1:
+                print("No suggestions :(", file=sys.stderr)
+                return False
+            else:
+                word = s[-2]
+                part = s[-1]
+                possible = self.__partial__(word, part)
+        else:
+            possible = self.__suggest__(word)
+
+        if not possible:
             print("No suggestions :(", file=sys.stderr)
             return False
 
-        else:
-            index = self.lexicon[word]
-            t = self.weights[index]
-            for i in np.argsort(t)[::-1]:
-                if t[i] == 0:
-                    continue
-                print(f"{list(self.lexicon)[i]} {t[i]}")
-            return True
+        for i,w in enumerate(possible):
+            print(w)
+
+        return True
 
 
 if __name__ == '__main__':
