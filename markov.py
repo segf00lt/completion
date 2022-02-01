@@ -56,15 +56,18 @@ class Model:
                 self.weights[row][col] += 1
 
         # adjust probabilities
-        rsum = self.weights.sum(axis=1).reshape((-1, 1)) # sum each row in raw
+        rowsum = self.weights.sum(axis=1).reshape((-1, 1))
         scale = np.vectorize(lambda i : i if i == 0 else 1 / i)
-        self.weights *= scale(rsum)
+        self.weights *= scale(rowsum)
 
         data.close()
         return True
 
     def __suggest__(self, w : str):
-        index = self.lexicon[w]
+        try:
+            index = self.lexicon[w]
+        except KeyError:
+            return []
         t = self.weights[index]
         nz = np.nonzero(t)[0]
         u = nz[np.argsort(t[nz])[::-1]]
@@ -87,18 +90,15 @@ class Model:
             return False
 
         s = s.translate(str.maketrans('', '', exclude)).strip().split()
-        word = s[-1]
 
-        if word not in self.lexicon:
-            if len(s) == 1:
-                print("No suggestions :(", file=sys.stderr)
-                return False
-            else:
-                word = s[-2]
-                part = s[-1]
-                possible = self.__partial__(word, part)
-        else:
+        if len(s) == 1:
+            word = s[-1]
             possible = self.__suggest__(word)
+
+        else:
+            word = s[-2]
+            part = s[-1]
+            possible = self.__partial__(word, part)
 
         if not possible:
             print("No suggestions :(", file=sys.stderr)
